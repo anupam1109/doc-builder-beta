@@ -5,6 +5,8 @@ var express			 		= require('express'),
 	LocalStrategy	 		= require('passport-local'),
 	passportLocalMongoose	= require('passport-local-mongoose'),
 	expressSession 			= require('express-session'),
+	Version					= require('./models/version'),
+	Document 				= require('./models/document')
 	User					= require('./models/user');
 
 mongoose.connect("mongodb://localhost/Document_help", { useNewUrlParser: true });
@@ -26,6 +28,7 @@ app.use(passport.session());
 passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
+
 
 function isLoggedIn(req, res, next){
 	if(req.isAuthenticated()) {
@@ -105,7 +108,111 @@ app.get("/logout", function(req, res){
 });
 
 app.get("/private", isLoggedIn, function(req, res){
-	res.render("private.ejs")
+	res.render("private")
+});
+
+app.get("/private/new", function(req,res){
+	res.render("sample_form");
+});
+
+app.post("/private", function(req,res){
+	var name = req.body.document_name;
+
+	Document.create({
+		name : name
+	},function(err,document){
+		User.findOne({username : "anupam1109@outlook.com"}, function(err,foundUser){
+			if(err) {
+				console.log(err);			
+			} else {
+				console.log(foundUser);
+				foundUser.Documents.push(document);
+				foundUser.save(function(err,data){
+					if(err) {
+						console.log(err);
+					} else {
+						console.log(data);
+					}
+				});
+			}
+		});
+	});
+});
+
+app.post("/savedVersions", function(req,res){
+	var school = req.body.school_name;
+	var address = req.body.address;
+	var date = req.body.date;
+	var reason = req.body.reason;
+	var name = req.body.name;
+	var comment = req.body.comment;
+
+	// comment : String,
+	// school_name : String,
+	// address : String,
+	// date : String,
+	// reason : String,
+	// name : String
+
+	Version.create({
+		comment : comment,
+		school_name : school,
+		address : address,
+		data : date,
+		reason : reason,
+		name : name
+		},function(err,version){
+			User.findOne({username : "anupam1109@outlook.com"}, function(err,foundUser){
+				if(err) {
+					console.log(err);			
+				} else {
+					// console.log(foundUser);
+					Document.findOne({name : "Leave application"}, function(err,foundDocument){
+						if(err) {
+							console.log(err);
+						} else {
+							foundDocument.Versions.push(version);
+							foundDocument.save(function(err,data){
+								if(err) {
+									console.log(err);
+								} else {
+									console.log(data);
+								}
+									});
+						}
+					});
+					// foundUser.Documents.push(document);
+					// foundUser.save(function(err,data){
+					// 	if(err) {
+					// 		console.log(err);
+					// 	} else {
+					// 		console.log(data);
+					// 	}
+					// });
+				}
+			});
+		});
+
+	res.redirect("/private");
+	// Document.create({
+	// 	name : "Leave application"
+	// 	},function(err,document){
+	// 		User.findOne({username : "anupam1109@outlook.com"}, function(err,foundUser){
+	// 			if(err) {
+	// 				console.log(err);			
+	// 			} else {
+	// 				console.log(foundUser);
+	// 				foundUser.Documents.push(document);
+	// 				foundUser.save(function(err,data){
+	// 					if(err) {
+	// 						console.log(err);
+	// 					} else {
+	// 						console.log(data);
+	// 					}
+	// 				});
+	// 			}
+	// 		});
+	// 	});
 });
 
 // Listening to the server
